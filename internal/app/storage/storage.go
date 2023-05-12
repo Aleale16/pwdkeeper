@@ -9,20 +9,23 @@ import (
 
 var PGdb *pgxpool.Pool
 
-type authUsers struct{ login string; password string; publickey string }
-type dataRecords struct{ idrecord int32; namerecord, datarecord, datatype string; login string }
+type authUsers struct{ login string; password string; fek string }
+type dataRecords struct{ idrecord string; namerecord, datarecord, datatype string; login string }
 var (	authUser authUsers;
 		record dataRecords;
 	)
 type storagerUser interface {
 	storeuser() (status string, authToken string)
-	getuser() (status string, publickey string)
-	authenticateuser() (status string, publickey string)
+	getuser() (status string, fek string)
+	authenticateuser() (status string, fek string)
 	getuserrecords() (status string, rowsDataRecordJSON string)
 }
 type storagerData interface {
 	storerecord() (status string, recordID string)
-	getrecord() (status string, rowDataRecordJSON string)
+	updaterecord() (status string)
+	deleterecord() (status string)
+	getrecord() (datarecord string, datatype string)
+	getnamerecord() (namerecord string)
 	
 }
 var (	SUser storagerUser;
@@ -37,11 +40,11 @@ type rowDataRecord struct {
 		Datatype 		string 	`json:"datatype"`       
 	}
 
-func StoreUser(login string, password string, publickey string) (status string, authToken string) {
+func StoreUser(login string, password string, fek string) (status string, authToken string) {
 	log.Debug().Msg("func StoreUser")
 	authUser.login = login
 	authUser.password = password
-	authUser.publickey = publickey
+	authUser.fek = fek
 	SUser = authUser
 	return SUser.storeuser()
 }
@@ -78,12 +81,30 @@ func StoreRecord(namerecord, datarecord, datatype, login string) (status string,
 	return SData.storerecord()
 }
 
-func GetRecord(idrecord int32) (status string, rowDataRecordJSON string){
+func UpdateRecord(recordID string, datarecord string) (status string){
+	log.Debug().Msg("func UpdateRecord")
+	record.idrecord = recordID
+	record.datarecord = hex.EncodeToString([]byte(datarecord))
+	SData = record
+	return SData.updaterecord()
+}
+func DeleteRecord(recordID string) (status string){
+	log.Debug().Msg("func DeleteRecord")
+	record.idrecord = recordID
+	SData = record
+	return SData.deleterecord()
+}
+
+func GetRecord(idrecord string) (datarecord string, datatype string){
 	record.idrecord = idrecord
 	SData = record
 	return SData.getrecord()
 }
 
-func UpdateRecord() {
-
+func GetNameRecord(idrecord string) (namerecord string){
+	log.Debug().Msg("func GetNameRecord")
+	record.idrecord = idrecord
+	SData = record
+	return SData.getnamerecord()
 }
+

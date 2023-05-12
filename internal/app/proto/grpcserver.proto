@@ -9,17 +9,17 @@ message GetUserRequest {
 }
 message GetUserResponse { 
     string Status = 1;
-    string Publickey = 2;
+    string Fek = 2;
 }
 
 message StoreUserRequest {
     string Login = 1; 
     string Password = 2; 
-    string Publickey = 3; 
+    string Fek = 3; 
 }
 message StoreUserResponse { 
     string Status = 1;
-    string Publickey = 2;
+    string Fek = 2;
 }
 
 message GetUserAuthRequest {
@@ -28,7 +28,7 @@ message GetUserAuthRequest {
 }
 message GetUserAuthResponse { 
     string Status = 1;
-    string Publickey = 2;
+    string Fek = 2;
 }
 
 message GetUserRecordsRequest {
@@ -39,24 +39,36 @@ message GetUserRecordsResponse {
     string UserRecordsJSON = 2;
 }
 
-/*
+
 message GetSingleRecordRequest {
-    string UserID = 1;
-    string RecordID = 2;
+    string RecordID = 1;
 }
 message GetSingleRecordResponse {
     string EncryptedData = 1;
     string DataType = 2;
 }
 
-message UpdateSingleRecordRequest {
-    string EncryptedData = 1;
-    string RecordID = 2;
-    bool ToDelete = 3;
+message GetSingleNameRecordRequest {
+    string RecordID = 1;
 }
-message UpdateSingleRecordResponse {
+message GetSingleNameRecordResponse {
+    string DataName= 1;
+}
+
+message UpdateRecordRequest {
+    string RecordID = 1;
+    string EncryptedData = 2;    
+}
+message UpdateRecordResponse {
     string Status = 1;
-}*/
+}
+
+message DeleteRecordRequest {
+    string RecordID = 1; 
+}
+message DeleteRecordResponse {
+    string Status = 1;
+}
 
 message StoreSingleRecordRequest {
     string DataName = 1;
@@ -70,9 +82,11 @@ message StoreSingleRecordResponse {
 }
 
 service Actions {
-//  rpc GetSingleRecord(GetSingleRecordRequest) returns (GetSingleRecordResponse);
+  rpc GetSingleRecord(GetSingleRecordRequest) returns (GetSingleRecordResponse);
+  rpc GetSingleNameRecord(GetSingleNameRecordRequest) returns (GetSingleNameRecordResponse);
   rpc StoreSingleRecord(StoreSingleRecordRequest) returns (StoreSingleRecordResponse);
-//  rpc UpdateSingleRecord(UpdateSingleRecordRequest) returns (UpdateSingleRecordResponse);
+  rpc UpdateRecord(UpdateRecordRequest) returns (UpdateRecordResponse);
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
   rpc GetUserRecords(GetUserRecordsRequest) returns (GetUserRecordsResponse);
   rpc GetUserAuth(GetUserAuthRequest) returns (GetUserAuthResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);

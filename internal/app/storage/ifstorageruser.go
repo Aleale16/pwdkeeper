@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 
@@ -11,7 +10,7 @@ import (
 )
 
 func (user authUsers) storeuser() (status string, authToken string) {
-	result, err := PGdb.Exec(context.Background(), `INSERT into users(login, password, publickey) values ($1, $2, $3) on conflict (login) DO NOTHING`, user.login, user.password, user.publickey)
+	result, err := PGdb.Exec(context.Background(), `INSERT into users(login, password, fek) values ($1, $2, $3) on conflict (login) DO NOTHING`, user.login, user.password, user.fek)
 	if err != nil {
 		log.Fatal().Err(err)
 		return
@@ -27,8 +26,8 @@ func (user authUsers) storeuser() (status string, authToken string) {
 	return status, authToken
 }
 
-func (user authUsers) getuser() (status string, publickey string) {
-	err := PGdb.QueryRow(context.Background(), `SELECT users.publickey FROM users WHERE login=$1`, user.login).Scan(&publickey)
+func (user authUsers) getuser() (status string, fek string) {
+	err := PGdb.QueryRow(context.Background(), `SELECT users.fek FROM users WHERE login=$1`, user.login).Scan(&fek)
 	if err != nil {		
 		if errors.Is(err, pgx.ErrNoRows){
 			log.Error().Msg("User doesn't exist")
@@ -41,11 +40,11 @@ func (user authUsers) getuser() (status string, publickey string) {
 		log.Info().Msg("User exists")
 		status = "200"
 		}
-	return status, publickey
+	return status, fek
 }
 
-func (user authUsers) authenticateuser() (status string, publickey string) {
-	err := PGdb.QueryRow(context.Background(), `SELECT users.publickey FROM users WHERE login=$1 AND password=$2`, user.login, user.password).Scan(&publickey)
+func (user authUsers) authenticateuser() (status string, fek string) {
+	err := PGdb.QueryRow(context.Background(), `SELECT users.publickey FROM users WHERE login=$1 AND password=$2`, user.login, user.password).Scan(&fek)
 	if err != nil {		
 		if errors.Is(err, pgx.ErrNoRows){
 			log.Error().Msg("User login or password is invalid")
@@ -58,7 +57,7 @@ func (user authUsers) authenticateuser() (status string, publickey string) {
 		log.Info().Msg("User login and password are OK")
 		status = "200"
 		}
-	return status, publickey
+	return status, fek
 }
 
 func (user authUsers) getuserrecords() (status string, DataRecordsJSON string) {
@@ -69,7 +68,7 @@ func (user authUsers) getuserrecords() (status string, DataRecordsJSON string) {
 	if err != nil {
 		log.Error().Msgf(err.Error())
 		}
-	defer rows.Close()
+	//defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&id, &namerecord, &datarecord, &datatype)
 		if err != nil {
@@ -78,11 +77,12 @@ func (user authUsers) getuserrecords() (status string, DataRecordsJSON string) {
 			status = "500"
 			return
 		}
-		datarecordbyte, _ := hex.DecodeString(datarecord)
+		//datarecordbyte, _ := hex.DecodeString(datarecord)
 		rowsDataRecordJSON = append(rowsDataRecordJSON, rowDataRecord{
 			IDrecord:			id,
 			Namerecord:			namerecord,
-			Datarecord:			string(datarecordbyte),
+			//Datarecord:			string(datarecordbyte),
+			Datarecord:			"**********************",
 			Datatype:			datatype,
 		})
 	}

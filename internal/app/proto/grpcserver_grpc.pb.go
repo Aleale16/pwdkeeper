@@ -19,20 +19,26 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Actions_StoreSingleRecord_FullMethodName = "/proto.Actions/StoreSingleRecord"
-	Actions_GetUserRecords_FullMethodName    = "/proto.Actions/GetUserRecords"
-	Actions_GetUserAuth_FullMethodName       = "/proto.Actions/GetUserAuth"
-	Actions_GetUser_FullMethodName           = "/proto.Actions/GetUser"
-	Actions_StoreUser_FullMethodName         = "/proto.Actions/StoreUser"
+	Actions_GetSingleRecord_FullMethodName     = "/proto.Actions/GetSingleRecord"
+	Actions_GetSingleNameRecord_FullMethodName = "/proto.Actions/GetSingleNameRecord"
+	Actions_StoreSingleRecord_FullMethodName   = "/proto.Actions/StoreSingleRecord"
+	Actions_UpdateRecord_FullMethodName        = "/proto.Actions/UpdateRecord"
+	Actions_DeleteRecord_FullMethodName        = "/proto.Actions/DeleteRecord"
+	Actions_GetUserRecords_FullMethodName      = "/proto.Actions/GetUserRecords"
+	Actions_GetUserAuth_FullMethodName         = "/proto.Actions/GetUserAuth"
+	Actions_GetUser_FullMethodName             = "/proto.Actions/GetUser"
+	Actions_StoreUser_FullMethodName           = "/proto.Actions/StoreUser"
 )
 
 // ActionsClient is the client API for Actions service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ActionsClient interface {
-	// rpc GetSingleRecord(GetSingleRecordRequest) returns (GetSingleRecordResponse);
+	GetSingleRecord(ctx context.Context, in *GetSingleRecordRequest, opts ...grpc.CallOption) (*GetSingleRecordResponse, error)
+	GetSingleNameRecord(ctx context.Context, in *GetSingleNameRecordRequest, opts ...grpc.CallOption) (*GetSingleNameRecordResponse, error)
 	StoreSingleRecord(ctx context.Context, in *StoreSingleRecordRequest, opts ...grpc.CallOption) (*StoreSingleRecordResponse, error)
-	// rpc UpdateSingleRecord(UpdateSingleRecordRequest) returns (UpdateSingleRecordResponse);
+	UpdateRecord(ctx context.Context, in *UpdateRecordRequest, opts ...grpc.CallOption) (*UpdateRecordResponse, error)
+	DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error)
 	GetUserRecords(ctx context.Context, in *GetUserRecordsRequest, opts ...grpc.CallOption) (*GetUserRecordsResponse, error)
 	GetUserAuth(ctx context.Context, in *GetUserAuthRequest, opts ...grpc.CallOption) (*GetUserAuthResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
@@ -47,9 +53,45 @@ func NewActionsClient(cc grpc.ClientConnInterface) ActionsClient {
 	return &actionsClient{cc}
 }
 
+func (c *actionsClient) GetSingleRecord(ctx context.Context, in *GetSingleRecordRequest, opts ...grpc.CallOption) (*GetSingleRecordResponse, error) {
+	out := new(GetSingleRecordResponse)
+	err := c.cc.Invoke(ctx, Actions_GetSingleRecord_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *actionsClient) GetSingleNameRecord(ctx context.Context, in *GetSingleNameRecordRequest, opts ...grpc.CallOption) (*GetSingleNameRecordResponse, error) {
+	out := new(GetSingleNameRecordResponse)
+	err := c.cc.Invoke(ctx, Actions_GetSingleNameRecord_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *actionsClient) StoreSingleRecord(ctx context.Context, in *StoreSingleRecordRequest, opts ...grpc.CallOption) (*StoreSingleRecordResponse, error) {
 	out := new(StoreSingleRecordResponse)
 	err := c.cc.Invoke(ctx, Actions_StoreSingleRecord_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *actionsClient) UpdateRecord(ctx context.Context, in *UpdateRecordRequest, opts ...grpc.CallOption) (*UpdateRecordResponse, error) {
+	out := new(UpdateRecordResponse)
+	err := c.cc.Invoke(ctx, Actions_UpdateRecord_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *actionsClient) DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error) {
+	out := new(DeleteRecordResponse)
+	err := c.cc.Invoke(ctx, Actions_DeleteRecord_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +138,11 @@ func (c *actionsClient) StoreUser(ctx context.Context, in *StoreUserRequest, opt
 // All implementations must embed UnimplementedActionsServer
 // for forward compatibility
 type ActionsServer interface {
-	// rpc GetSingleRecord(GetSingleRecordRequest) returns (GetSingleRecordResponse);
+	GetSingleRecord(context.Context, *GetSingleRecordRequest) (*GetSingleRecordResponse, error)
+	GetSingleNameRecord(context.Context, *GetSingleNameRecordRequest) (*GetSingleNameRecordResponse, error)
 	StoreSingleRecord(context.Context, *StoreSingleRecordRequest) (*StoreSingleRecordResponse, error)
-	// rpc UpdateSingleRecord(UpdateSingleRecordRequest) returns (UpdateSingleRecordResponse);
+	UpdateRecord(context.Context, *UpdateRecordRequest) (*UpdateRecordResponse, error)
+	DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error)
 	GetUserRecords(context.Context, *GetUserRecordsRequest) (*GetUserRecordsResponse, error)
 	GetUserAuth(context.Context, *GetUserAuthRequest) (*GetUserAuthResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
@@ -110,8 +154,20 @@ type ActionsServer interface {
 type UnimplementedActionsServer struct {
 }
 
+func (UnimplementedActionsServer) GetSingleRecord(context.Context, *GetSingleRecordRequest) (*GetSingleRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSingleRecord not implemented")
+}
+func (UnimplementedActionsServer) GetSingleNameRecord(context.Context, *GetSingleNameRecordRequest) (*GetSingleNameRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSingleNameRecord not implemented")
+}
 func (UnimplementedActionsServer) StoreSingleRecord(context.Context, *StoreSingleRecordRequest) (*StoreSingleRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StoreSingleRecord not implemented")
+}
+func (UnimplementedActionsServer) UpdateRecord(context.Context, *UpdateRecordRequest) (*UpdateRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRecord not implemented")
+}
+func (UnimplementedActionsServer) DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRecord not implemented")
 }
 func (UnimplementedActionsServer) GetUserRecords(context.Context, *GetUserRecordsRequest) (*GetUserRecordsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserRecords not implemented")
@@ -138,6 +194,42 @@ func RegisterActionsServer(s grpc.ServiceRegistrar, srv ActionsServer) {
 	s.RegisterService(&Actions_ServiceDesc, srv)
 }
 
+func _Actions_GetSingleRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSingleRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServer).GetSingleRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Actions_GetSingleRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServer).GetSingleRecord(ctx, req.(*GetSingleRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Actions_GetSingleNameRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSingleNameRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServer).GetSingleNameRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Actions_GetSingleNameRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServer).GetSingleNameRecord(ctx, req.(*GetSingleNameRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Actions_StoreSingleRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StoreSingleRecordRequest)
 	if err := dec(in); err != nil {
@@ -152,6 +244,42 @@ func _Actions_StoreSingleRecord_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ActionsServer).StoreSingleRecord(ctx, req.(*StoreSingleRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Actions_UpdateRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServer).UpdateRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Actions_UpdateRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServer).UpdateRecord(ctx, req.(*UpdateRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Actions_DeleteRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServer).DeleteRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Actions_DeleteRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServer).DeleteRecord(ctx, req.(*DeleteRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -236,8 +364,24 @@ var Actions_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ActionsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetSingleRecord",
+			Handler:    _Actions_GetSingleRecord_Handler,
+		},
+		{
+			MethodName: "GetSingleNameRecord",
+			Handler:    _Actions_GetSingleNameRecord_Handler,
+		},
+		{
 			MethodName: "StoreSingleRecord",
 			Handler:    _Actions_StoreSingleRecord_Handler,
+		},
+		{
+			MethodName: "UpdateRecord",
+			Handler:    _Actions_UpdateRecord_Handler,
+		},
+		{
+			MethodName: "DeleteRecord",
+			Handler:    _Actions_DeleteRecord_Handler,
 		},
 		{
 			MethodName: "GetUserRecords",

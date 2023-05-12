@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 
 	"pwdkeeper/internal/app/crypter"
 	"pwdkeeper/internal/app/initconfig"
@@ -44,6 +45,10 @@ func main() {
 }
 
 func StartUI(c pb.ActionsClient) {
+	var (
+		key1 []byte
+		action string
+	)
 	menulevel := 1
 	userisNew := true
 	login := ""
@@ -79,14 +84,22 @@ func StartUI(c pb.ActionsClient) {
 				}
 				menulevel = 2
 
-//!Read Password and Show All user Records
+//!Read Password and Show All encrypted user Records
 			case 2: 
 				password = consoleInput
-				if userisNew {			
-					log.Info().Msgf(string(crypter.Key2build(password)))	
-					EncryptedKey1 := crypter.EncryptKey1(crypter.Key1build(), crypter.Key2build(password))
-					log.Info().Msgf("EncryptedKey1 %v", hex.EncodeToString(EncryptedKey1))
-					log.Info().Msgf(string(crypter.DecryptKey1((EncryptedKey1), crypter.Key2build(password))))
+				if userisNew {	
+					//Key Encryption Key (KEK)
+					key2 := crypter.Key2build(password)	
+					//File Encryption Key (FEK) 
+					key1 = crypter.Key1build()
+					
+					log.Debug().Msgf("Key2build(password) %v", string(key2))	
+					log.Debug().Msgf("key1 %v", hex.EncodeToString(key1))
+
+					EncryptedKey1 := crypter.EncryptKey1(key1, key2)
+					
+					key2 = crypter.Key2build(password)
+					log.Debug().Msgf("Decrypted key1: %v", string(crypter.DecryptKey1((EncryptedKey1), key2)))
 					//if msgsender.SendUserStoremsg(c, login, "password", string(EncryptedKey1)) == "200" {
 					if msgsender.SendUserStoremsg(c, login, "password", hex.EncodeToString(EncryptedKey1)) == "200" {
 						log.Info().Msgf("User %v created and logged in!", login)
@@ -98,15 +111,15 @@ func StartUI(c pb.ActionsClient) {
 							menulevel = 1
 						}
 					} else {
-						log.Info().Msgf(string(crypter.DecryptKey1([]byte(key1enc), crypter.Key2build(password))))
-						log.Info().Msgf(string(crypter.DecryptKey1([]byte(key1enc), crypter.Key2build(password))))
-						log.Info().Msgf(string(crypter.DecryptKey1([]byte(key1enc), crypter.Key2build(password))))
+						noncekey1,_ := hex.DecodeString(key1enc)
+						key1 = crypter.DecryptKey1([]byte(noncekey1), crypter.Key2build(password))
+						log.Debug().Msgf(string(key1))
+						if key1 != nil {
+							log.Info().Msgf("Hello, user %v! Logged in successfully.", login)
 							
-
-						if msgsender.SendUserAuthmsg(c, login, password) == "200" {
-							log.Info().Msgf("User %v logged in!", login)
 							status, userRecordsJSON := msgsender.SendUserGetRecordsmsg(c, login)
-							log.Debug().Msg(status)
+							log.Debug().Msgf("SendUserGetRecordsmsg %v", status)
+							log.Info().Msgf("List of user %v records:", login)
 							log.Info().Msg(userRecordsJSON)
 							fmt.Print("Enter ID of existing record or NAME of new record to create: ")
 							menulevel = 3
@@ -117,17 +130,40 @@ func StartUI(c pb.ActionsClient) {
 							}
 					}
 
-//!Create new or Update existing Record 1)Read existing ID or new NAME
+//!Create new or ASK Update/Delete existing Record 1)Read existing ID or new NAME
 			case 3:
 				recordIDname = consoleInput
-				
-				//TODO check if entered int ID xor text NAME
-				recordisNew = true
-				if recordisNew{
-					fmt.Print("Enter somedata to store: ")
-					menulevel = 31
+				if _, err := strconv.Atoi(recordIDname); err == nil {
+					log.Info().Msgf("%q looks like an ID number.\n Decrypting data...\n", recordIDname)
+					recordisNew = false
+				} else {
+					recordisNew = true
+				}
+				if recordisNew {
+					if  len(recordIDname)>1{
+						fmt.Print("Enter somedata to store: ")
+						menulevel = 31
+						} else {
+							log.Warn().Msg("Dataname length must be at least 2 symbols!")
+							fmt.Print("Enter ID of existing record or NAME of new record to create: ")
+							menulevel = 3
+						}
 					} else {
-						fmt.Print("Enter somedata to update: ")
+						loadedsomedata, loadeddatatype := msgsender.SendGetSingleRecordmsg(c, recordIDname)
+						loadeddataname := msgsender.SendGetSingleNameRecordmsg(c, recordIDname)
+
+						log.Debug().Msgf("loadeddataname: %v",loadeddataname)
+						log.Debug().Msgf("loadedsomedata: %v",loadedsomedata)
+						log.Debug().Msgf("loadeddatatype: %v",loadeddatatype)
+
+						noncedata,_ := hex.DecodeString(loadedsomedata)
+						somedataDecrypted := crypter.DecryptData([]byte(noncedata),key1)
+						log.Debug().Msgf("somedataDecrypted: %v", string(somedataDecrypted))
+
+						log.Info().Msgf("ID=%v\n Data=%q\n Type=%v\n",loadeddataname, string(somedataDecrypted), loadeddatatype) 
+
+						fmt.Printf("[u]pdate, [d]elete, [r]eturn?")
+						//fmt.Printf("Enter somedata to update record ID %v: ", recordIDname)
 						menulevel = 41
 					}				
 
@@ -140,7 +176,9 @@ func StartUI(c pb.ActionsClient) {
 //!Create new Record 3)Read new datatype and Store NEW record returning created id
 			case 32:
 				datatype = consoleInput
-				status, recordID := msgsender.SendUserStoreRecordmsg(c, recordIDname, somedata, datatype, login)
+				somedataenc := crypter.EncryptData(somedata, key1)
+				log.Debug().Msgf("Created somedataenc= %v", hex.EncodeToString(somedataenc))
+				status, recordID := msgsender.SendUserStoreRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc), datatype, login)
 				if status == "200" {
 					log.Info().Msg("Created new record with ID=")
 					log.Info().Msg(recordID)
@@ -151,8 +189,39 @@ func StartUI(c pb.ActionsClient) {
 				log.Debug().Msg(status)
 				log.Info().Msg(userRecordsJSON)
 				fmt.Print("Enter ID of existing record or NAME of new record to create: ")
-				menulevel = 3				
-			}					
+				menulevel = 3	
+				
+//![u]pdate, [d]elete, [r]eturn? someDATA
+			case 41:
+				action = consoleInput	
+				switch action{
+					case "u":
+						fmt.Printf("Enter somedata to update record ID %v: ", recordIDname)
+						menulevel = 42
+//! DELETING record	
+					case "d":
+						if msgsender.SendDeleteRecordmsg(c, recordIDname) == "200" {
+							log.Info().Msgf("Record ID %v deleted successfully", recordIDname)
+						} else {
+							log.Warn().Msgf("Record ID %v wasn't deleted", recordIDname)
+						}
+						menulevel = 2
+					case "r":
+						menulevel = 2
+				}
+				 		
+//! UPDATING record			
+			case 42:
+				somedata = consoleInput
+				if msgsender.SendUpdateRecordmsg(c, recordIDname, somedata) == "200" {
+					log.Info().Msgf("Record ID %v updated successfully", recordIDname)
+				} else {
+					log.Warn().Msgf("Record ID %v wasn't updated", recordIDname)
+				}
+				menulevel = 2
+				
+
+		}					
 	}
 }
 

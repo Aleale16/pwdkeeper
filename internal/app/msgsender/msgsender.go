@@ -17,7 +17,7 @@ func SendUserGetmsg(c pb.ActionsClient, login string) (status string, key1enc st
 	//if resp.Error != "" {
 	//	fmt.Println(resp.Error)
 	//}
-	return resp.Status, resp.Publickey
+	return resp.Status, resp.Fek
 }
 
 func SendUserAuthmsg(c pb.ActionsClient, login, password string) (status string){
@@ -34,11 +34,11 @@ func SendUserAuthmsg(c pb.ActionsClient, login, password string) (status string)
 	return resp.Status
 }
 
-func SendUserStoremsg(c pb.ActionsClient, login, password, publickey string) (status string){
+func SendUserStoremsg(c pb.ActionsClient, login, password, fek string) (status string){
 	resp, err := c.StoreUser(context.Background(), &pb.StoreUserRequest{
 		Login: login,
 		Password: password,
-		Publickey: publickey,
+		Fek: fek,
 	})
 	if err != nil {
 		log.Fatal().Err(err)
@@ -76,4 +76,50 @@ func SendUserStoreRecordmsg(c pb.ActionsClient, namerecord, datarecord, datatype
 	//	fmt.Println(resp.Error)
 	//}
 	return resp.Status, resp.RecordID
+}
+
+func SendUpdateRecordmsg(c pb.ActionsClient, recordID, datarecord string) (status string){
+	resp, err := c.UpdateRecord(context.Background(), &pb.UpdateRecordRequest{
+		RecordID: recordID,
+		EncryptedData: datarecord,
+	})
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+	return resp.Status
+}
+
+func SendDeleteRecordmsg(c pb.ActionsClient, recordID string) (status string){
+	resp, err := c.DeleteRecord(context.Background(), &pb.DeleteRecordRequest{
+		RecordID: recordID,
+	})
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+	return resp.Status
+}
+
+func SendGetSingleRecordmsg(c pb.ActionsClient, recordID string) (somedataenc, datatype string){
+	resp, err := c.GetSingleRecord(context.Background(), &pb.GetSingleRecordRequest{
+		RecordID: recordID,
+	})
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+	//if resp.Error != "" {
+	//	fmt.Println(resp.Error)
+	//}
+	return resp.EncryptedData, resp.DataType
+	//return resp.DataType
+}
+
+func SendGetSingleNameRecordmsg(c pb.ActionsClient, recordID string) (namerecord string){
+	resp, err := c.GetSingleNameRecord(context.Background(), &pb.GetSingleNameRecordRequest{
+		RecordID: recordID,
+	})
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+
+	return resp.DataName
 }

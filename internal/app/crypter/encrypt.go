@@ -58,12 +58,12 @@ func generateRandom(size int) ([]byte, error) {
 
 	return b, nil
 }
-
+//KEK
 func Key2build(password string) []byte {
 	dk := pbkdf2.Key([]byte(password), initconfig.Salt, 4096, 32, sha1.New)
 	return dk
 }
-
+//FEK
 func Key1build() []byte {
 	// будем использовать AES256, создав ключ длиной 32 байта
 	key, err := generateRandom(2 * aes.BlockSize) // ключ шифрования
@@ -89,21 +89,29 @@ func EncryptKey1(key1, key2 []byte) (key1enc []byte) {
 
 	// создаём вектор инициализации
 	nonce, err := generateRandom(aesgcm.NonceSize())
-	fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
-	fmt.Printf("nonce %v\n", nonce)
+	//fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
+	//fmt.Printf("nonce %v\n", nonce)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
 
 	dst := aesgcm.Seal(nil, nonce, key1, nil) // зашифровываем
-	fmt.Printf("encrypted: %x\n", dst)
-	fmt.Printf("Seal %v\n", dst)
+	//fmt.Printf("encrypted: %x\n", dst)
+	//fmt.Printf("Seal %v\n", dst)
 	noncedst := append(nonce[:], dst[:]...)
+	//fmt.Printf("noncedst %v\n", noncedst)
 	return noncedst
 }
 
-func DecryptKey1(key1enc, key2 []byte) (key1decrypted []byte) {
+func DecryptKey1(noncekey1enc, key2 []byte) (key1decrypted []byte) {
+	// выделяем вектор инициализации
+	//fmt.Printf("aesgcm.NonceSize() %v\n", 12)
+	nonce := noncekey1enc[:12]
+	key1enc := noncekey1enc[12:]
+	//fmt.Printf("nonce %v\n", nonce)
+	//fmt.Printf("key1enc %v\n", key1enc)
+
 	aesblock, err := aes.NewCipher(key2)
 	if err != nil {
 		fmt.Printf("error NewCipher: %v\n", err)
@@ -114,15 +122,74 @@ func DecryptKey1(key1enc, key2 []byte) (key1decrypted []byte) {
 		fmt.Printf("error NewGCM: %v\n", err)
 		return nil
 	}
-	// создаём вектор инициализации
-	fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
-	nonce := key2[len(key2)-aesgcm.NonceSize():]
-	fmt.Printf("nonce %v\n", nonce)
+
 	key1, err := aesgcm.Open(nil, nonce, key1enc, nil) // расшифровываем
 	if err != nil {
 		fmt.Printf("error Open: %v\n", err)
 		return nil
 	}
-	fmt.Printf("decrypted: %s\n", key1)
+	//fmt.Printf("decrypted: %s\n", key1)
+	//fmt.Printf("decrypted hex key1: %s\n", hex.EncodeToString(key1))
 	return key1
+}
+
+
+func EncryptData (somedata string, key1 []byte)(somedataenc []byte){
+	aesblock, err := aes.NewCipher(key1)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+
+	aesgcm, err := cipher.NewGCM(aesblock)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+
+	// создаём вектор инициализации
+	nonce, err := generateRandom(aesgcm.NonceSize())
+	//fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
+	//fmt.Printf("nonce %v\n", nonce)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+
+	dst := aesgcm.Seal(nil, nonce, []byte(somedata), nil) // зашифровываем
+	//fmt.Printf("encrypted: %x\n", dst)
+	//fmt.Printf("Seal %v\n", dst)
+	noncedst := append(nonce[:], dst[:]...)
+	//fmt.Printf("noncedst %v\n", noncedst)
+	return noncedst
+
+}
+
+func DecryptData(noncedataenc, key1 []byte) (somedatadecrypted []byte) {
+	// выделяем вектор инициализации
+	fmt.Printf("aesgcm.NonceSize() %v\n", 12)
+	nonce := noncedataenc[:12]
+	dataenc := noncedataenc[12:]
+	//fmt.Printf("nonce %v\n", nonce)
+	//fmt.Printf("dataenc %v\n", dataenc)
+
+	aesblock, err := aes.NewCipher(key1)
+	if err != nil {
+		fmt.Printf("error NewCipher: %v\n", err)
+		return nil
+	}
+	aesgcm, err := cipher.NewGCM(aesblock)
+	if err != nil {
+		fmt.Printf("error NewGCM: %v\n", err)
+		return nil
+	}
+
+	somedata, err := aesgcm.Open(nil, nonce, dataenc, nil) // расшифровываем
+	if err != nil {
+		fmt.Printf("error Open: %v\n", err)
+		return nil
+	}
+	//fmt.Printf("decrypted: %s\n", key1)
+	//fmt.Printf("decrypted hex data: %s\n", hex.EncodeToString(somedata))
+	return somedata
 }

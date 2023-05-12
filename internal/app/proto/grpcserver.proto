@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "pwdkeeper/internal/app/proto";
+
+message GetUserRequest {
+    string Login = 1;  
+}
+message GetUserResponse { 
+    string Status = 1;
+    string Publickey = 2;
+}
+
+message StoreUserRequest {
+    string Login = 1; 
+    string Password = 2; 
+    string Publickey = 3; 
+}
+message StoreUserResponse { 
+    string Status = 1;
+    string Publickey = 2;
+}
+
+message GetUserAuthRequest {
+    string Login = 1;
+    string Password = 2;  
+}
+message GetUserAuthResponse { 
+    string Status = 1;
+    string Publickey = 2;
+}
+
+message GetUserRecordsRequest {
+    string Login = 1;
+}
+message GetUserRecordsResponse {
+    string Status = 1;
+    string UserRecordsJSON = 2;
+}
+
+/*
+message GetSingleRecordRequest {
+    string UserID = 1;
+    string RecordID = 2;
+}
+message GetSingleRecordResponse {
+    string EncryptedData = 1;
+    string DataType = 2;
+}
+
+message UpdateSingleRecordRequest {
+    string EncryptedData = 1;
+    string RecordID = 2;
+    bool ToDelete = 3;
+}
+message UpdateSingleRecordResponse {
+    string Status = 1;
+}*/
+
+message StoreSingleRecordRequest {
+    string DataName = 1;
+    string SomeData = 2;
+    string DataType = 3;
+    string Login = 4;
+}
+message StoreSingleRecordResponse {
+    string Status = 1;
+    string RecordID = 2;
+}
+
+service Actions {
+//  rpc GetSingleRecord(GetSingleRecordRequest) returns (GetSingleRecordResponse);
+  rpc StoreSingleRecord(StoreSingleRecordRequest) returns (StoreSingleRecordResponse);
+//  rpc UpdateSingleRecord(UpdateSingleRecordRequest) returns (UpdateSingleRecordResponse);
+  rpc GetUserRecords(GetUserRecordsRequest) returns (GetUserRecordsResponse);
+  rpc GetUserAuth(GetUserAuthRequest) returns (GetUserAuthResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc StoreUser(StoreUserRequest) returns (StoreUserResponse);
+} 

@@ -47,7 +47,7 @@ func main() {
 func StartUI(c pb.ActionsClient) {
 	var (
 		key1 []byte
-		action string
+		action, userRecordsJSON, status string
 	)
 	menulevel := 1
 	userisNew := true
@@ -117,7 +117,7 @@ func StartUI(c pb.ActionsClient) {
 						if key1 != nil {
 							log.Info().Msgf("Hello, user %v! Logged in successfully.", login)
 							
-							status, userRecordsJSON := msgsender.SendUserGetRecordsmsg(c, login)
+							status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
 							log.Debug().Msgf("SendUserGetRecordsmsg %v", status)
 							log.Info().Msgf("List of user %v records:", login)
 							log.Info().Msg(userRecordsJSON)
@@ -185,7 +185,7 @@ func StartUI(c pb.ActionsClient) {
 				} else {
 					log.Error().Msg("Error creating NEW data record!")
 				}
-				status, userRecordsJSON := msgsender.SendUserGetRecordsmsg(c, login)
+				status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
 				log.Debug().Msg(status)
 				log.Info().Msg(userRecordsJSON)
 				fmt.Print("Enter ID of existing record or NAME of new record to create: ")
@@ -205,22 +205,32 @@ func StartUI(c pb.ActionsClient) {
 						} else {
 							log.Warn().Msgf("Record ID %v wasn't deleted", recordIDname)
 						}
-						menulevel = 2
+						_, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
+						log.Info().Msgf("List of user %v records:", login)
+						log.Info().Msg(userRecordsJSON)
+						fmt.Print("Enter ID of existing record or NAME of new record to create: ")
+						menulevel = 3
 					case "r":
-						menulevel = 2
+						log.Info().Msgf("List of user %v records:", login)
+						log.Info().Msg(userRecordsJSON)
+						fmt.Print("Enter ID of existing record or NAME of new record to create: ")
+						menulevel = 3
 				}
 				 		
 //! UPDATING record			
 			case 42:
 				somedata = consoleInput
-				if msgsender.SendUpdateRecordmsg(c, recordIDname, somedata) == "200" {
+				somedataenc := crypter.EncryptData(somedata, key1)
+				if msgsender.SendUpdateRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc)) == "200" {
 					log.Info().Msgf("Record ID %v updated successfully", recordIDname)
 				} else {
 					log.Warn().Msgf("Record ID %v wasn't updated", recordIDname)
 				}
-				menulevel = 2
-				
-
+				_, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
+				log.Info().Msgf("List of user %v records:", login)
+				log.Info().Msg(userRecordsJSON)
+				fmt.Print("Enter ID of existing record or NAME of new record to create: ")
+				menulevel = 3
 		}					
 	}
 }

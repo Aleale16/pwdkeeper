@@ -167,7 +167,7 @@ func EncryptData (somedata string, key1 []byte)(somedataenc []byte){
 
 func DecryptData(noncedataenc, key1 []byte) (somedatadecrypted []byte) {
 	// выделяем вектор инициализации
-	fmt.Printf("aesgcm.NonceSize() %v\n", 12)
+	//fmt.Printf("aesgcm.NonceSize() %v\n", 12)
 	nonce := noncedataenc[:12]
 	dataenc := noncedataenc[12:]
 	//fmt.Printf("nonce %v\n", nonce)

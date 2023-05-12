@@ -63,8 +63,6 @@ func StartUI(c pb.ActionsClient) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("Hello! Enter Login: ")
 
-
-
 	for {				
 		// Scans a line from Stdin(Console)
 		scanner.Scan()
@@ -115,7 +113,7 @@ func StartUI(c pb.ActionsClient) {
 						key1 = crypter.DecryptKey1([]byte(noncekey1), crypter.Key2build(password))
 						log.Debug().Msgf(string(key1))
 						if key1 != nil {
-							log.Info().Msgf("Hello, user %v! Logged in successfully.", login)
+							log.Info().Msgf("Welcome, user %v! Logged in successfully.", login)
 							
 							status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
 							log.Debug().Msgf("SendUserGetRecordsmsg %v", status)

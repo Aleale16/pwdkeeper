@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	pb "pwdkeeper/internal/app/proto"
 	"pwdkeeper/internal/app/storage"
+	"syscall"
 
 	"google.golang.org/grpc"
 )
 
 // Grpcserverstart starts gRPC server
-func Grpcserverstart() {
+func Grpcserverstart() error{
 	
 	storage.Initdb()
 
@@ -28,7 +31,29 @@ func Grpcserverstart() {
 
 		fmt.Println("Сервер gRPC начал работу")
 	// получаем запрос gRPC
+	//	if err := s.Serve(listen); err != nil {
+	//		log.Fatal(err)
+	//	}
+	errChan := make(chan error)
+	stopChan := make(chan os.Signal, 1)
+
+	// Ожидаем события от ОС
+	signal.Notify(stopChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	// сообщаем об ошибках в канал
+	go func() {
 		if err := s.Serve(listen); err != nil {
-			log.Fatal(err)
+			errChan <- err
 		}
+	}()
+	defer func() {
+		s.GracefulStop()
+	}()
+
+	select {
+	case err := <-errChan:
+		log.Printf("Fatal error: %v\n", err)
+	case <-stopChan:
+	}
+	return nil
 }

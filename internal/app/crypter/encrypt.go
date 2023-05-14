@@ -11,31 +11,16 @@ import (
 	"fmt"
 	"pwdkeeper/internal/app/initconfig"
 
-	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func HashAndSalt(pwd []byte) string {
-	// Use GenerateFromPassword to hash & salt pwd.
-	// MinCost is just an integer constant provided by the bcrypt
-	// package along with DefaultCost & MaxCost.
-	// The cost can be any value you want provided it isn't lower
-	// than the MinCost (4)
-	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
-	if err != nil {
-		log.Error().Err(err)
-	} // GenerateFromPassword returns a byte slice so we need to
-	// convert the bytes to a string and return it
-	return string(hash)
-}
-
-func GenAuthToken(password string) (authToken string) {
+// GenAuthToken uses predefined ServerKey, that compiles on both client+server. Client generate hmac signed login, Server checks if sign valid (made on ServerKey)
+func GenAuthToken(login string) (authToken string) {
 	//sign user with HMAC, using SHA256
-	h := hmac.New(sha256.New, initconfig.Key)
-	h.Write([]byte(password))
+	h := hmac.New(sha256.New, initconfig.ServerKey)
+	h.Write([]byte(login))
 	dst := h.Sum(nil)
-	authToken = string(dst) + string(password)
+	authToken = string(dst) + string(login)
 	return hex.EncodeToString([]byte(authToken))
 }
 
@@ -89,16 +74,12 @@ func EncryptKey1(key1, key2 []byte) (key1enc []byte) {
 
 	// создаём вектор инициализации
 	nonce, err := generateRandom(aesgcm.NonceSize())
-	//fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
-	//fmt.Printf("nonce %v\n", nonce)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
 
 	dst := aesgcm.Seal(nil, nonce, key1, nil) // зашифровываем
-	//fmt.Printf("encrypted: %x\n", dst)
-	//fmt.Printf("Seal %v\n", dst)
 	noncedst := append(nonce[:], dst[:]...)
 	//fmt.Printf("noncedst %v\n", noncedst)
 	return noncedst
@@ -106,11 +87,8 @@ func EncryptKey1(key1, key2 []byte) (key1enc []byte) {
 
 func DecryptKey1(noncekey1enc, key2 []byte) (key1decrypted []byte) {
 	// выделяем вектор инициализации
-	//fmt.Printf("aesgcm.NonceSize() %v\n", 12)
 	nonce := noncekey1enc[:12]
 	key1enc := noncekey1enc[12:]
-	//fmt.Printf("nonce %v\n", nonce)
-	//fmt.Printf("key1enc %v\n", key1enc)
 
 	aesblock, err := aes.NewCipher(key2)
 	if err != nil {
@@ -128,8 +106,6 @@ func DecryptKey1(noncekey1enc, key2 []byte) (key1decrypted []byte) {
 		fmt.Printf("error Open: %v\n", err)
 		return nil
 	}
-	//fmt.Printf("decrypted: %s\n", key1)
-	//fmt.Printf("decrypted hex key1: %s\n", hex.EncodeToString(key1))
 	return key1
 }
 
@@ -149,29 +125,21 @@ func EncryptData (somedata string, key1 []byte)(somedataenc []byte){
 
 	// создаём вектор инициализации
 	nonce, err := generateRandom(aesgcm.NonceSize())
-	//fmt.Printf("aesgcm.NonceSize() %v\n", aesgcm.NonceSize())
-	//fmt.Printf("nonce %v\n", nonce)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
 
 	dst := aesgcm.Seal(nil, nonce, []byte(somedata), nil) // зашифровываем
-	//fmt.Printf("encrypted: %x\n", dst)
-	//fmt.Printf("Seal %v\n", dst)
 	noncedst := append(nonce[:], dst[:]...)
-	//fmt.Printf("noncedst %v\n", noncedst)
 	return noncedst
 
 }
 
 func DecryptData(noncedataenc, key1 []byte) (somedatadecrypted []byte) {
 	// выделяем вектор инициализации
-	//fmt.Printf("aesgcm.NonceSize() %v\n", 12)
 	nonce := noncedataenc[:12]
 	dataenc := noncedataenc[12:]
-	//fmt.Printf("nonce %v\n", nonce)
-	//fmt.Printf("dataenc %v\n", dataenc)
 
 	aesblock, err := aes.NewCipher(key1)
 	if err != nil {
@@ -189,7 +157,6 @@ func DecryptData(noncedataenc, key1 []byte) (somedatadecrypted []byte) {
 		fmt.Printf("error Open: %v\n", err)
 		return nil
 	}
-	//fmt.Printf("decrypted: %s\n", key1)
-	//fmt.Printf("decrypted hex data: %s\n", hex.EncodeToString(somedata))
+
 	return somedata
 }

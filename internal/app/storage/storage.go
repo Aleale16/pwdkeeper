@@ -81,29 +81,33 @@ func StoreRecord(namerecord, datarecord, datatype, login string) (status string,
 	return SData.storerecord()
 }
 
-func UpdateRecord(recordID string, datarecord string) (status string){
+func UpdateRecord(recordID string, datarecord, login string) (status string){
 	log.Debug().Msg("func UpdateRecord")
 	record.idrecord = recordID
 	record.datarecord = hex.EncodeToString([]byte(datarecord))
+	record.login = login
 	SData = record
 	return SData.updaterecord()
 }
-func DeleteRecord(recordID string) (status string){
+func DeleteRecord(recordID, login string) (status string){
 	log.Debug().Msg("func DeleteRecord")
 	record.idrecord = recordID
+	record.login = login
 	SData = record
 	return SData.deleterecord()
 }
 
-func GetRecord(idrecord string) (datarecord string, datatype string){
+func GetRecord(idrecord, login string) (datarecord string, datatype string){
 	record.idrecord = idrecord
+	record.login = login
 	SData = record
 	return SData.getrecord()
 }
 
-func GetNameRecord(idrecord string) (namerecord string){
+func GetNameRecord(idrecord, login string) (namerecord string){
 	log.Debug().Msg("func GetNameRecord")
 	record.idrecord = idrecord
+	record.login = login
 	SData = record
 	return SData.getnamerecord()
 }

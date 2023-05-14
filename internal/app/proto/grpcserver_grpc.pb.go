@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	Actions_IsAuhtorized_FullMethodName        = "/proto.Actions/IsAuhtorized"
 	Actions_GetSingleRecord_FullMethodName     = "/proto.Actions/GetSingleRecord"
 	Actions_GetSingleNameRecord_FullMethodName = "/proto.Actions/GetSingleNameRecord"
 	Actions_StoreSingleRecord_FullMethodName   = "/proto.Actions/StoreSingleRecord"
@@ -34,6 +35,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ActionsClient interface {
+	IsAuhtorized(ctx context.Context, in *IsAuhtorizedRequest, opts ...grpc.CallOption) (*IsAuhtorizedResponse, error)
 	GetSingleRecord(ctx context.Context, in *GetSingleRecordRequest, opts ...grpc.CallOption) (*GetSingleRecordResponse, error)
 	GetSingleNameRecord(ctx context.Context, in *GetSingleNameRecordRequest, opts ...grpc.CallOption) (*GetSingleNameRecordResponse, error)
 	StoreSingleRecord(ctx context.Context, in *StoreSingleRecordRequest, opts ...grpc.CallOption) (*StoreSingleRecordResponse, error)
@@ -51,6 +53,15 @@ type actionsClient struct {
 
 func NewActionsClient(cc grpc.ClientConnInterface) ActionsClient {
 	return &actionsClient{cc}
+}
+
+func (c *actionsClient) IsAuhtorized(ctx context.Context, in *IsAuhtorizedRequest, opts ...grpc.CallOption) (*IsAuhtorizedResponse, error) {
+	out := new(IsAuhtorizedResponse)
+	err := c.cc.Invoke(ctx, Actions_IsAuhtorized_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *actionsClient) GetSingleRecord(ctx context.Context, in *GetSingleRecordRequest, opts ...grpc.CallOption) (*GetSingleRecordResponse, error) {
@@ -138,6 +149,7 @@ func (c *actionsClient) StoreUser(ctx context.Context, in *StoreUserRequest, opt
 // All implementations must embed UnimplementedActionsServer
 // for forward compatibility
 type ActionsServer interface {
+	IsAuhtorized(context.Context, *IsAuhtorizedRequest) (*IsAuhtorizedResponse, error)
 	GetSingleRecord(context.Context, *GetSingleRecordRequest) (*GetSingleRecordResponse, error)
 	GetSingleNameRecord(context.Context, *GetSingleNameRecordRequest) (*GetSingleNameRecordResponse, error)
 	StoreSingleRecord(context.Context, *StoreSingleRecordRequest) (*StoreSingleRecordResponse, error)
@@ -154,6 +166,9 @@ type ActionsServer interface {
 type UnimplementedActionsServer struct {
 }
 
+func (UnimplementedActionsServer) IsAuhtorized(context.Context, *IsAuhtorizedRequest) (*IsAuhtorizedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsAuhtorized not implemented")
+}
 func (UnimplementedActionsServer) GetSingleRecord(context.Context, *GetSingleRecordRequest) (*GetSingleRecordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSingleRecord not implemented")
 }
@@ -192,6 +207,24 @@ type UnsafeActionsServer interface {
 
 func RegisterActionsServer(s grpc.ServiceRegistrar, srv ActionsServer) {
 	s.RegisterService(&Actions_ServiceDesc, srv)
+}
+
+func _Actions_IsAuhtorized_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsAuhtorizedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServer).IsAuhtorized(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Actions_IsAuhtorized_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServer).IsAuhtorized(ctx, req.(*IsAuhtorizedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Actions_GetSingleRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -363,6 +396,10 @@ var Actions_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.Actions",
 	HandlerType: (*ActionsServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "IsAuhtorized",
+			Handler:    _Actions_IsAuhtorized_Handler,
+		},
 		{
 			MethodName: "GetSingleRecord",
 			Handler:    _Actions_GetSingleRecord_Handler,

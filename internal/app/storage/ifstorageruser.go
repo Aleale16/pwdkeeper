@@ -44,7 +44,7 @@ func (user authUsers) getuser() (status string, fek string) {
 }
 
 func (user authUsers) authenticateuser() (status string, fek string) {
-	err := PGdb.QueryRow(context.Background(), `SELECT users.publickey FROM users WHERE login=$1 AND password=$2`, user.login, user.password).Scan(&fek)
+	err := PGdb.QueryRow(context.Background(), `SELECT users.fek FROM users WHERE login=$1 AND password=$2`, user.login, user.password).Scan(&fek)
 	if err != nil {		
 		if errors.Is(err, pgx.ErrNoRows){
 			log.Error().Msg("User login or password is invalid")
@@ -62,7 +62,7 @@ func (user authUsers) authenticateuser() (status string, fek string) {
 
 func (user authUsers) getuserrecords() (status string, DataRecordsJSON string) {
 	var id int32
-	var namerecord, datarecord, datatype string
+	var namerecord, datarecord, datatype, datarecordmask string
 	var rowsDataRecordJSON []rowDataRecord
 	rows, err := PGdb.Query(context.Background(), `SELECT data.id, data.namerecord, encode(data.datarecord,'hex'), data.datatype FROM data WHERE login_fkey=$1`, user.login)
 	if err != nil {
@@ -78,11 +78,19 @@ func (user authUsers) getuserrecords() (status string, DataRecordsJSON string) {
 			return
 		}
 		//datarecordbyte, _ := hex.DecodeString(datarecord)
+		switch datatype{
+			case "String":
+				datarecordmask = "**********************"
+			case "File":
+				datarecordmask = "*.*"
+			case "Bankcard":
+				datarecordmask = "**** **** **** ****, **/**, ***"
+		}
 		rowsDataRecordJSON = append(rowsDataRecordJSON, rowDataRecord{
 			IDrecord:			id,
 			Namerecord:			namerecord,
 			//Datarecord:			string(datarecordbyte),
-			Datarecord:			"**********************",
+			Datarecord:			datarecordmask,
 			Datatype:			datatype,
 		})
 	}

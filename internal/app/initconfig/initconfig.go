@@ -11,7 +11,7 @@ import (
 var PostgresDBURLflag *string
 var PostgresDBURL string
 
-var Key = []byte("StrongPhrase_BIuaeruvlkjasdiu%2jl")
+var ServerKey = []byte("StrongPhrase_BIuaeruvlkjasdiu%2jl")
 var Salt = []byte("StrongSalt_BIuaeruvlkjasdiu%2jl")
 
 func InitFlags() {
@@ -25,7 +25,7 @@ func SetinitVars() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
 	fmt.Print("Logger params is set.")
 
-/*	postgresDBURLENV, postgresDBURLexists := os.LookupEnv("DATABASE_URI")
+	postgresDBURLENV, postgresDBURLexists := os.LookupEnv("DATABASE_URI")
 	if !postgresDBURLexists{		
 		PostgresDBURL = *PostgresDBURLflag
 		fmt.Println("Set from flag: PostgresDBURL:", PostgresDBURL)
@@ -33,5 +33,13 @@ func SetinitVars() {
 		PostgresDBURL = postgresDBURLENV
 		fmt.Println("Set from ENV: PostgresDBURL:", PostgresDBURL)
 	}
-	*/
+	
+}
+
+func SetinitclientVars() {
+
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
+	fmt.Print("Logger params is set.")
+
 }

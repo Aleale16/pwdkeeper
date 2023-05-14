@@ -18,12 +18,40 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Greetings(text string){
-	fmt.Print(text)
-}
+var (
+	// buildVersion - global buildVersion value.
+	buildVersion string
+	// buildDate - global buildDate value.
+	buildDate string
+	// buildCommit - buildCommit value.
+	buildCommit string
+)
 
 func main() {
-	initconfig.SetinitVars()
+
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	_, err := fmt.Printf("Build version: %s", buildVersion)
+	if err != nil {
+		log.Print(err)
+	}
+	_, err = fmt.Printf("Build date: %s", buildDate)
+	if err != nil {
+		log.Print(err)
+	}
+	_, err = fmt.Printf("Build commit: %s", buildCommit)
+	if err != nil {
+		log.Print(err)
+	}
+
+	initconfig.SetinitclientVars()
 
 	log.Logger.Info().Msg("Starting CLIENT...")
 	log.Logger.Info().Msg("Connecting to Server localhost:3200...")
@@ -37,19 +65,20 @@ func main() {
 	// через которую будем отправлять сообщения
 	c := pb.NewActionsClient(conn)
 	log.Logger.Info().Msg("Connected.")
-	Greetings("Starting UI...")
+	log.Logger.Info().Msg("Starting UI...")
 
 	StartUI(c)
 	// функция, в которой будем отправлять сообщения
-	//SendUserAuthmsg(c, "", "")	
 }
 
 func StartUI(c pb.ActionsClient) {
 	var (
 		key1 []byte
-		action, userRecordsJSON, status string
+		action, userRecordsJSON, status, AuthToken string
+		menulevel int32
 	)
-	menulevel := 1
+	AuthToken = ""
+	menulevel = 1
 	userisNew := true
 	login := ""
 	loginstatus := ""
@@ -80,6 +109,7 @@ func StartUI(c pb.ActionsClient) {
 				} else {
 					fmt.Print("Create Password for NEW user: ")
 				}
+				
 				menulevel = 2
 
 //!Read Password and Show All encrypted user Records
@@ -100,7 +130,10 @@ func StartUI(c pb.ActionsClient) {
 					log.Debug().Msgf("Decrypted key1: %v", string(crypter.DecryptKey1((EncryptedKey1), key2)))
 					//if msgsender.SendUserStoremsg(c, login, "password", string(EncryptedKey1)) == "200" {
 					if msgsender.SendUserStoremsg(c, login, "password", hex.EncodeToString(EncryptedKey1)) == "200" {
+						AuthToken = crypter.GenAuthToken(login)
+						
 						log.Info().Msgf("User %v created and logged in!", login)
+						log.Debug().Msgf("User AuthToken = %v", AuthToken)
 						fmt.Print("Enter NAME of new record to create: ")
 						menulevel = 3
 						} else {
@@ -113,9 +146,11 @@ func StartUI(c pb.ActionsClient) {
 						key1 = crypter.DecryptKey1([]byte(noncekey1), crypter.Key2build(password))
 						log.Debug().Msgf(string(key1))
 						if key1 != nil {
+							AuthToken = crypter.GenAuthToken(login)
 							log.Info().Msgf("Welcome, user %v! Logged in successfully.", login)
-							
-							status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
+							log.Debug().Msgf("User AuthToken = %v", AuthToken)
+							//crypter.IsAuhtorized(AuthToken)
+							status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, AuthToken)
 							log.Debug().Msgf("SendUserGetRecordsmsg %v", status)
 							log.Info().Msgf("List of user %v records:", login)
 							log.Info().Msg(userRecordsJSON)
@@ -139,7 +174,7 @@ func StartUI(c pb.ActionsClient) {
 				}
 				if recordisNew {
 					if  len(recordIDname)>1{
-						fmt.Print("Enter somedata to store: ")
+						fmt.Print("Enter data type to store [s]tring, [f]ile, [b]ankcard: ")
 						menulevel = 31
 						} else {
 							log.Warn().Msg("Dataname length must be at least 2 symbols!")
@@ -147,47 +182,68 @@ func StartUI(c pb.ActionsClient) {
 							menulevel = 3
 						}
 					} else {
-						loadedsomedata, loadeddatatype := msgsender.SendGetSingleRecordmsg(c, recordIDname)
-						loadeddataname := msgsender.SendGetSingleNameRecordmsg(c, recordIDname)
+						log.Debug().Msgf("User AuthToken = %v", AuthToken)
+						loadedsomedata, loadeddatatype := msgsender.SendGetSingleRecordmsg(c, recordIDname, AuthToken)
+						loadeddataname := msgsender.SendGetSingleNameRecordmsg(c, recordIDname, AuthToken)
 
 						log.Debug().Msgf("loadeddataname: %v",loadeddataname)
 						log.Debug().Msgf("loadedsomedata: %v",loadedsomedata)
 						log.Debug().Msgf("loadeddatatype: %v",loadeddatatype)
+						if loadedsomedata != ""{
+							noncedata,_ := hex.DecodeString(loadedsomedata)
+							somedataDecrypted := crypter.DecryptData([]byte(noncedata),key1)
+							log.Debug().Msgf("somedataDecrypted: %v", string(somedataDecrypted))
 
-						noncedata,_ := hex.DecodeString(loadedsomedata)
-						somedataDecrypted := crypter.DecryptData([]byte(noncedata),key1)
-						log.Debug().Msgf("somedataDecrypted: %v", string(somedataDecrypted))
+							log.Info().Msgf("Decrypted:\n Name=%v\n Data=%q\n Type=%v\n",loadeddataname, string(somedataDecrypted), loadeddatatype) 
 
-						log.Info().Msgf("ID=%v\n Data=%q\n Type=%v\n",loadeddataname, string(somedataDecrypted), loadeddatatype) 
+							fmt.Printf("[u]pdate, [d]elete, [r]eturn? ")
+							//fmt.Printf("Enter somedata to update record ID %v: ", recordIDname)
+							menulevel = 41
+						} else {
+							log.Error().Msgf("Data record with ID %v is not availible (deleted)", recordIDname)
+							menulevel = gotoMenulevel3(c, login, AuthToken)
+							fmt.Print("Enter ID of existing record or NAME of new record to create: ")
+						}
 
-						fmt.Printf("[u]pdate, [d]elete, [r]eturn?")
-						//fmt.Printf("Enter somedata to update record ID %v: ", recordIDname)
-						menulevel = 41
 					}				
 
-//!Create new Record 2)Read new someDATA
+//!Create new Record 2)Read new datatype
 			case 31:
-				somedata = consoleInput			
-				fmt.Print("Enter data type to store: ")
-				menulevel = 32
+				datatype = consoleInput	
+//TODO different input logic for datatypes
+				switch datatype{
+					case "s":
+						datatype = "String"
+						fmt.Print("Enter somedata text to store: ")
+						menulevel = 32
+					case "f":
+						datatype = "File"
+						fmt.Print("Enter filepath to store: ")
+						menulevel = 32
+					case "b":
+						datatype = "Bankcard"
+						fmt.Print("Enter 20 digits, exp, cvc/cvv to store: ")
+						menulevel = 32
+					default:
+						log.Warn().Msgf("Wrong data type %v!", datatype)
+						fmt.Print("Enter data type to store [s]tring, [f]ile, [b]ankcard: ")
+						menulevel = 31
+					}				
 				
-//!Create new Record 3)Read new datatype and Store NEW record returning created id
+//!Create new Record 3)Read new someDATA and Store NEW record returning created id
 			case 32:
-				datatype = consoleInput
+				somedata = consoleInput
 				somedataenc := crypter.EncryptData(somedata, key1)
 				log.Debug().Msgf("Created somedataenc= %v", hex.EncodeToString(somedataenc))
-				status, recordID := msgsender.SendUserStoreRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc), datatype, login)
+				status, recordID := msgsender.SendUserStoreRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc), datatype, AuthToken)
 				if status == "200" {
 					log.Info().Msg("Created new record with ID=")
 					log.Info().Msg(recordID)
 				} else {
 					log.Error().Msg("Error creating NEW data record!")
 				}
-				status, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
-				log.Debug().Msg(status)
-				log.Info().Msg(userRecordsJSON)
+				menulevel = gotoMenulevel3(c, login, AuthToken)
 				fmt.Print("Enter ID of existing record or NAME of new record to create: ")
-				menulevel = 3	
 				
 //![u]pdate, [d]elete, [r]eturn? someDATA
 			case 41:
@@ -198,38 +254,38 @@ func StartUI(c pb.ActionsClient) {
 						menulevel = 42
 //! DELETING record	
 					case "d":
-						if msgsender.SendDeleteRecordmsg(c, recordIDname) == "200" {
+						if msgsender.SendDeleteRecordmsg(c, recordIDname, AuthToken) == "200" {
 							log.Info().Msgf("Record ID %v deleted successfully", recordIDname)
 						} else {
-							log.Warn().Msgf("Record ID %v wasn't deleted", recordIDname)
+							log.Error().Msgf("Data record with ID %v is not availible (already deleted)", recordIDname)
 						}
-						_, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
-						log.Info().Msgf("List of user %v records:", login)
-						log.Info().Msg(userRecordsJSON)
+						menulevel = gotoMenulevel3(c, login, AuthToken)
 						fmt.Print("Enter ID of existing record or NAME of new record to create: ")
-						menulevel = 3
 					case "r":
-						log.Info().Msgf("List of user %v records:", login)
-						log.Info().Msg(userRecordsJSON)
+						menulevel = gotoMenulevel3(c, login, AuthToken)
 						fmt.Print("Enter ID of existing record or NAME of new record to create: ")
-						menulevel = 3
 				}
 				 		
 //! UPDATING record			
 			case 42:
 				somedata = consoleInput
 				somedataenc := crypter.EncryptData(somedata, key1)
-				if msgsender.SendUpdateRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc)) == "200" {
+				if msgsender.SendUpdateRecordmsg(c, recordIDname, hex.EncodeToString(somedataenc), AuthToken) == "200" {
 					log.Info().Msgf("Record ID %v updated successfully", recordIDname)
 				} else {
-					log.Warn().Msgf("Record ID %v wasn't updated", recordIDname)
+					log.Error().Msgf("Data record with ID %v is not availible (deleted)", recordIDname)
 				}
-				_, userRecordsJSON = msgsender.SendUserGetRecordsmsg(c, login)
-				log.Info().Msgf("List of user %v records:", login)
-				log.Info().Msg(userRecordsJSON)
+				menulevel = gotoMenulevel3(c, login, AuthToken)
 				fmt.Print("Enter ID of existing record or NAME of new record to create: ")
-				menulevel = 3
 		}					
 	}
+}
+
+func gotoMenulevel3(c pb.ActionsClient, login, AuthToken string) (menulevel int32) {
+	_, userRecordsJSON := msgsender.SendUserGetRecordsmsg(c, AuthToken)
+	log.Info().Msgf("List of user %v records:", login)
+	log.Info().Msg(userRecordsJSON)
+	menulevel = 3
+	return menulevel
 }
 

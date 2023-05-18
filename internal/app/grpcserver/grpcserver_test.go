@@ -80,7 +80,7 @@ func TestStoreUser(t *testing.T) {
 		in       *pb.StoreUserRequest
 		expected expectation
 	}{
-		"Must_Success": {
+		"User_created": {
 			in: &pb.StoreUserRequest{
 				Login: "TestUser1",
 				Password: "11111111",
@@ -94,7 +94,7 @@ func TestStoreUser(t *testing.T) {
 				err: nil,
 			},
 		},
-		"User_exist": {
+		"User_alreadyexists": {
 			in: &pb.StoreUserRequest{
 				Login: "TestUser1",
 				Password: "11111111",
@@ -128,3 +128,61 @@ func TestStoreUser(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUser(t *testing.T) {
+
+	ctx := context.Background()
+	client, closer := server(ctx)
+	defer closer()
+
+	type expectation struct {
+		out *pb.GetUserResponse
+		err error
+	}
+
+	tests := map[string]struct {
+		in       *pb.GetUserRequest
+		expected expectation
+	}{
+		"User_exists": {
+			in: &pb.GetUserRequest{
+				Login: "TestUser1",
+			},
+			expected: expectation{
+				out: &pb.GetUserResponse{
+					Status:     "200",
+					Fek: "5fa06d0b64facf315275f740d850e36bad092368b54116a4346f97306c92d82f6c1236eef780b3b81f0d6a239e9c01a12a47af277afddac3f18c0a9d",
+				},
+				err: nil,
+			},
+		},
+		"User_doesntexists": {
+			in: &pb.GetUserRequest{
+				Login: "BadTestUser1",
+			},
+			expected: expectation{
+				out: &pb.GetUserResponse{
+					Status:     "401",
+					Fek: "",
+				},
+				err: nil,
+			},
+		},
+	}
+		for scenario, tt := range tests {
+			t.Run(scenario, func(t *testing.T) {
+				out, err := client.GetUser(ctx, tt.in)
+				if err != nil {
+					if tt.expected.err.Error() != err.Error() {
+						t.Errorf("Err -> \nWant: %q\nGot: %q\n", tt.expected.err, err)
+					}
+				} else {
+					if tt.expected.out.Status != out.Status ||
+						tt.expected.out.Fek != out.Fek  {
+						t.Errorf("Out -> \nWant: %q\nGot : %q", tt.expected.out, out)
+					}
+				}
+	
+			})
+		}
+	}

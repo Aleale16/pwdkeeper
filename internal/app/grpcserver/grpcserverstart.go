@@ -13,21 +13,24 @@ import (
 	"google.golang.org/grpc"
 )
 
+var Listen net.Listener
+var S *grpc.Server
+
 // Grpcserverstart starts gRPC server
-func Grpcserverstart() error{
+func Grpcserverstart() (error) {
 	
 	storage.Initdb()
 
 	// определяем порт для сервера
-	listen, err := net.Listen("tcp", ":3200")
+	Listen, err := net.Listen("tcp", ":3200")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// создаём gRPC-сервер без зарегистрированной службы
-	s := grpc.NewServer()
+	S := grpc.NewServer()
 	// регистрируем сервис
-	pb.RegisterActionsServer(s, &ActionsServer{})
+	pb.RegisterActionsServer(S, &ActionsServer{})
 
 		fmt.Println("Сервер gRPC начал работу")
 	// получаем запрос gRPC
@@ -42,12 +45,12 @@ func Grpcserverstart() error{
 
 	// сообщаем об ошибках в канал
 	go func() {
-		if err := s.Serve(listen); err != nil {
+		if err := S.Serve(Listen); err != nil {
 			errChan <- err
 		}
 	}()
 	defer func() {
-		s.GracefulStop()
+		S.GracefulStop()
 	}()
 
 	select {

@@ -13,16 +13,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-var Listen net.Listener
-var S *grpc.Server
-
 // Grpcserverstart starts gRPC server
 func Grpcserverstart() (error) {
 	
 	storage.Initdb()
 
 	// определяем порт для сервера
-	Listen, err := net.Listen("tcp", ":3200")
+	listen, err := net.Listen("tcp", ":3200")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +42,7 @@ func Grpcserverstart() (error) {
 
 	// сообщаем об ошибках в канал
 	go func() {
-		if err := S.Serve(Listen); err != nil {
+		if err := S.Serve(listen); err != nil {
 			errChan <- err
 		}
 	}()

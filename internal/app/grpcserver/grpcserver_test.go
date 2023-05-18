@@ -19,7 +19,8 @@ import (
 
 
 func server(ctx context.Context) (pb.ActionsClient, func()) {
-	initconfig.InitFlags()
+	
+
 
 	flag.Parse()
 
@@ -68,6 +69,8 @@ func server(ctx context.Context) (pb.ActionsClient, func()) {
 func TestStoreUser(t *testing.T) {
 
 	ctx := context.Background()
+	initconfig.InitFlags()
+
 	client, closer := server(ctx)
 	defer closer()
 
@@ -179,6 +182,131 @@ func TestGetUser(t *testing.T) {
 				} else {
 					if tt.expected.out.Status != out.Status ||
 						tt.expected.out.Fek != out.Fek  {
+						t.Errorf("Out -> \nWant: %q\nGot : %q", tt.expected.out, out)
+					}
+				}
+	
+			})
+		}
+	}
+
+func TestGetAuthUser(t *testing.T) {
+
+ctx := context.Background()
+client, closer := server(ctx)
+defer closer()
+
+type expectation struct {
+	out *pb.GetUserAuthResponse
+	err error
+}
+
+tests := map[string]struct {
+	in       *pb.GetUserAuthRequest
+	expected expectation
+}{
+	"User_authenticated": {
+		in: &pb.GetUserAuthRequest{
+			Login: "TestUser1",
+			Password: "Password",
+		},
+		expected: expectation{
+			out: &pb.GetUserAuthResponse{
+				Status:     "200",
+				Fek: "5fa06d0b64facf315275f740d850e36bad092368b54116a4346f97306c92d82f6c1236eef780b3b81f0d6a239e9c01a12a47af277afddac3f18c0a9d",
+			},
+			err: nil,
+		},
+	},
+	"User_notauthenticated": {
+		in: &pb.GetUserAuthRequest{
+			Login: "TestUser1",
+			Password: "BadPassword",
+		},
+		expected: expectation{
+			out: &pb.GetUserAuthResponse{
+				Status:     "401",
+				Fek: "",
+			},
+			err: nil,
+		},
+	},
+}
+	for scenario, tt := range tests {
+		t.Run(scenario, func(t *testing.T) {
+			out, err := client.GetUserAuth(ctx, tt.in)
+			if err != nil {
+				if tt.expected.err.Error() != err.Error() {
+					t.Errorf("Err -> \nWant: %q\nGot: %q\n", tt.expected.err, err)
+				}
+			} else {
+				if tt.expected.out.Status != out.Status ||
+					tt.expected.out.Fek != out.Fek  {
+					t.Errorf("Out -> \nWant: %q\nGot : %q", tt.expected.out, out)
+				}
+			}
+
+		})
+	}
+}
+
+func TestGetAuthUserRecords(t *testing.T) {
+
+	ctx := context.Background()
+	client, closer := server(ctx)
+	defer closer()
+
+	type expectation struct {
+		out *pb.GetUserRecordsResponse
+		err error
+	}
+
+	tests := map[string]struct {
+		in       *pb.GetUserRecordsRequest
+		expected expectation
+	}{
+		"User_SuccessGetRecords": {
+			in: &pb.GetUserRecordsRequest{
+				Login: "TestUser1",
+			},
+			expected: expectation{
+				out: &pb.GetUserRecordsResponse{
+					Status:     "200",
+					UserRecordsJSON: `[
+						{
+						  "id": 4,
+						  "namerecord": "NewRecord",
+						  "datarecord": "**********************",
+						  "datatype": "String"
+						}
+					  ]`,
+				},
+				err: nil,
+			},
+		},
+		"User_notauthenticatedGetRecords": {
+			in: &pb.GetUserRecordsRequest{
+				Login: "BadTestUser1",
+			},
+			expected: expectation{
+				out: &pb.GetUserRecordsResponse{
+					Status:     "500",
+					UserRecordsJSON: "",
+				},
+				err: nil,
+			},
+		},
+	}
+		for scenario, tt := range tests {
+			t.Run(scenario, func(t *testing.T) {
+				out, err := client.GetUserRecords(ctx, tt.in)
+				if err != nil {
+					if tt.expected.err.Error() != err.Error() {
+						t.Errorf("Err -> \nWant: %q\nGot: %q\n", tt.expected.err, err)
+					}
+				} else {
+					if tt.expected.out.Status != out.Status ||
+						tt.expected.out.UserRecordsJSON != out.UserRecordsJSON  {
 						t.Errorf("Out -> \nWant: %q\nGot : %q", tt.expected.out, out)
 					}
 				}

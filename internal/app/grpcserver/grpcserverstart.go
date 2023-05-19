@@ -14,7 +14,7 @@ import (
 )
 
 // Grpcserverstart starts gRPC server
-func Grpcserverstart() error{
+func Grpcserverstart() (error) {
 	
 	storage.Initdb()
 
@@ -25,9 +25,9 @@ func Grpcserverstart() error{
 	}
 
 	// создаём gRPC-сервер без зарегистрированной службы
-	s := grpc.NewServer()
+	S := grpc.NewServer()
 	// регистрируем сервис
-	pb.RegisterActionsServer(s, &ActionsServer{})
+	pb.RegisterActionsServer(S, &ActionsServer{})
 
 		fmt.Println("Сервер gRPC начал работу")
 	// получаем запрос gRPC
@@ -42,12 +42,12 @@ func Grpcserverstart() error{
 
 	// сообщаем об ошибках в канал
 	go func() {
-		if err := s.Serve(listen); err != nil {
+		if err := S.Serve(listen); err != nil {
 			errChan <- err
 		}
 	}()
 	defer func() {
-		s.GracefulStop()
+		S.GracefulStop()
 	}()
 
 	select {
